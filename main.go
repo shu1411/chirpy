@@ -1,19 +1,35 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/shu1411/chirpy/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	databaseQueries *database.Queries
 }
 
 const filePathRoot = "."
 const port = "8080"
 
 func main() {
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Printf("Failed to open database: %v\n", err)
+		os.Exit(1)
+	}
+	dbQueries := database.New(db)
+
 	serveMux := http.NewServeMux()
 	server := &http.Server{
 		Handler: serveMux,
@@ -22,6 +38,7 @@ func main() {
 
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
+		databaseQueries: dbQueries,
 	}
 
 	serveMux.HandleFunc("GET /api/healthz", handlerReadiness)
