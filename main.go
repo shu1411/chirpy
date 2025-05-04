@@ -53,6 +53,7 @@ func main() {
 	serveMux.HandleFunc("POST /api/chirps", apiCfg.handlerPostChirp)
 	serveMux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	serveMux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirpByID)
+	serveMux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(filePathRoot)))
 	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
