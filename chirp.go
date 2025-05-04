@@ -57,6 +57,27 @@ func (cfg *apiConfig) handlerPostChirp(w http.ResponseWriter, req *http.Request)
 	})
 }
 
+func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request) {
+	chirps, err := cfg.db.GetChirps(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to get chirps", err)
+		return
+	}
+
+	chirpsList := []Chirp{}
+	for _, chirp := range chirps {
+		chirpsList = append(chirpsList, Chirp{
+			ID: chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body: chirp.Body,
+			UserID: chirp.UserID,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, chirpsList)
+}
+
 func validateChirp(body string) (string, error) {
 	const maxBodyLength = 140
 	if len(body) > maxBodyLength {
