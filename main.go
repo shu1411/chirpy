@@ -14,8 +14,8 @@ import (
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-	databaseQueries *database.Queries
-	Platform		string
+	db             *database.Queries
+	Platform       string
 }
 
 const filePathRoot = "."
@@ -25,11 +25,10 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
-	
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Printf("Failed to open database: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Failed to open database: %v\n", err)
 	}
 	defer db.Close()
 
@@ -38,21 +37,21 @@ func main() {
 	serveMux := http.NewServeMux()
 	server := &http.Server{
 		Handler: serveMux,
-		Addr: ":" + port,
+		Addr:    ":" + port,
 	}
 
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
-		databaseQueries: dbQueries,
-		Platform: platform,
+		db:             dbQueries,
+		Platform:       platform,
 	}
 
 	serveMux.HandleFunc("GET /api/healthz", handlerReadiness)
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.handlerRequestCount)
-	serveMux.HandleFunc("POST /admin/reset", apiCfg.handlerResetRequestCount)
-	serveMux.HandleFunc("POST /api/validate_chirp", handlerValidate)
+	serveMux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	serveMux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
-	
+	serveMux.HandleFunc("POST /api/chirps", apiCfg.handlerPostChirp)
+
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(filePathRoot)))
 	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
 

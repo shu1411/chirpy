@@ -32,7 +32,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	user, err := cfg.databaseQueries.CreateUser(req.Context(), params.Email)
+	user, err := cfg.db.CreateUser(req.Context(), params.Email)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "failed to create user", err)
 		return
@@ -40,10 +40,10 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 
 	respondWithJSON(w, http.StatusCreated, response{
 		User: User{
-			ID: user.ID,
+			ID:        user.ID,
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
-			Email: params.Email,
+			Email:     params.Email,
 		},
 	})
 }
