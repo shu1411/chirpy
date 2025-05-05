@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shu1411/chirpy/internal/auth"
 	"github.com/shu1411/chirpy/internal/database"
 )
 
@@ -22,12 +23,23 @@ type Chirp struct {
 func (cfg *apiConfig) handlerPostChirp(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
 		Body   string 	  `json:"body"`
-		UserID uuid.UUID  `json:"user_id"`
+	}
+
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "couldn't get jwt token", err)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.Secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "invalid jwt token", err)
+		return
 	}
 
 	decoder := json.NewDecoder(req.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't decode parameters", err)
 		return
@@ -40,8 +52,8 @@ func (cfg *apiConfig) handlerPostChirp(w http.ResponseWriter, req *http.Request)
 	}
 
 	chirp, err := cfg.db.CreatePost(req.Context(), database.CreatePostParams{
-		Body: cleaned,
-		UserID: params.UserID,
+		Body: 	cleaned,
+		UserID: userID,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't create chirp", err)

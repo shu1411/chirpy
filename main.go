@@ -13,9 +13,10 @@ import (
 )
 
 type apiConfig struct {
-	fileserverHits atomic.Int32
-	db             *database.Queries
-	Platform       string
+	fileserverHits 	atomic.Int32
+	db             	*database.Queries
+	Platform       	string
+	Secret			string
 }
 
 const filePathRoot = "."
@@ -25,6 +26,7 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	jwtSecret := os.Getenv("SECRET")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -44,6 +46,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		Platform:       platform,
+		Secret: 		jwtSecret,
 	}
 
 	serveMux.HandleFunc("GET /api/healthz", handlerReadiness)
