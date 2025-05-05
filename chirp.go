@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -70,10 +71,32 @@ func (cfg *apiConfig) handlerPostChirp(w http.ResponseWriter, req *http.Request)
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request) {
-	chirps, err := cfg.db.GetChirps(req.Context())
+	var chirps []database.Chirp
+	var err error
+	var sortOrder = "asc"
+
+	authorIDString := req.URL.Query().Get("author_id")
+	sortOrder = req.URL.Query().Get("sort")
+
+	if authorIDString == "" {
+		chirps, err = cfg.db.GetChirps(req.Context())
+	} else {
+		authorID, _ := uuid.Parse(authorIDString)
+		chirps, err = cfg.db.GetChirpsByAuthorID(req.Context(), authorID)
+	}
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "failed to get chirps", err)
+		respondWithError(w, http.StatusInternalServerError, "couldn't get chirps", err)
 		return
+	}
+
+	if sortOrder == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return i > j
+		})
+	} else {
+		sort.Slice(chirps, func(i, j int) bool {
+			return i < j
+		})
 	}
 
 	chirpsList := []Chirp{}
