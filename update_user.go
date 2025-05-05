@@ -11,7 +11,7 @@ import (
 func (cfg *apiConfig) handlerUpdate(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
-		Email	 string `json:"email"`
+		Email    string `json:"email"`
 	}
 	type response struct {
 		User
@@ -44,9 +44,9 @@ func (cfg *apiConfig) handlerUpdate(w http.ResponseWriter, req *http.Request) {
 	}
 
 	user, err := cfg.db.UpdateUserEmailAndPassword(req.Context(), database.UpdateUserEmailAndPasswordParams{
-		Email: params.Email,
+		Email:          params.Email,
 		HashedPassword: hashedPassword,
-		ID: userID,
+		ID:             userID,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't update user", err)
@@ -55,10 +55,11 @@ func (cfg *apiConfig) handlerUpdate(w http.ResponseWriter, req *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
-			ID: 		user.ID,
-			CreatedAt: 	user.CreatedAt,
-			UpdatedAt: 	user.UpdatedAt,
-			Email: 		user.Email,
+			ID:          user.ID,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+			Email:       user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 	})
 }
