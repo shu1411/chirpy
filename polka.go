@@ -5,9 +5,20 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/shu1411/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) handlerMembership(w http.ResponseWriter, req *http.Request) {
+	apiKey, err := auth.GetAPIKey(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "failed to get api key", err)
+		return
+	}
+	if apiKey != cfg.PolkaKey {
+		respondWithError(w, http.StatusUnauthorized, "invalid api key", err)
+		return
+	}
+
 	type parameters struct {
 		Event string `json:"event"`
 		Data struct{
@@ -17,7 +28,7 @@ func (cfg *apiConfig) handlerMembership(w http.ResponseWriter, req *http.Request
 
 	decoder := json.NewDecoder(req.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't decode parameters", err)
 		return

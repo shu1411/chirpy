@@ -13,10 +13,11 @@ import (
 )
 
 type apiConfig struct {
-	fileserverHits 	atomic.Int32
-	db             	*database.Queries
-	Platform       	string
-	Secret			string
+	fileserverHits atomic.Int32
+	db             *database.Queries
+	Platform       string
+	Secret         string
+	PolkaKey       string
 }
 
 const filePathRoot = "."
@@ -27,6 +28,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	jwtSecret := os.Getenv("SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -46,7 +48,8 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		Platform:       platform,
-		Secret: 		jwtSecret,
+		Secret:         jwtSecret,
+		PolkaKey:       polkaKey,
 	}
 
 	serveMux.HandleFunc("GET /api/healthz", handlerReadiness)
