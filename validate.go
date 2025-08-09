@@ -1,53 +1,26 @@
 package main
 
 import (
-	"encoding/json"
-	"net/http"
-	"slices"
 	"strings"
 )
 
 const maxChirpLength = 140
 
-var badWords = []string{
-	"kerfuffle",
-	"sharbert",
-	"fornax",
+var badWords = map[string]struct{}{
+	"kerfuffle": {},
+	"sharbert":  {},
+	"fornax":    {},
 }
 
-func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Body string `json:"body"`
-	}
-
-	type returnVals struct {
-		CleanedBody string `json:"cleaned_body"`
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
-	err := decoder.Decode(&params)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
-		return
-	}
-
-	if len(params.Body) > maxChirpLength {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
-		return
-	}
-
-	respondWithJSON(w, http.StatusOK, returnVals{
-		CleanedBody: replaceBadWords(params.Body),
-	})
+func isValidChirp(msg string) bool {
+	return len(msg) <= maxChirpLength
 }
 
-// TODO: replace slices.Contains with a map lookup
 func replaceBadWords(msg string) string {
-	words := strings.Fields(msg)
+	words := strings.Split(msg, " ")
 
 	for i, word := range words {
-		if slices.Contains(badWords, strings.ToLower(word)) {
+		if _, ok := badWords[strings.ToLower(word)]; ok {
 			words[i] = "****"
 		}
 	}
