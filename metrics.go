@@ -31,7 +31,17 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 
 // Reset request count to 0
 func (cfg *apiConfig) handlerResetCount(w http.ResponseWriter, r *http.Request) {
+	if cfg.platform != "dev" {
+		respondWithError(w, http.StatusForbidden, "only allowed in local development", nil)
+		return 
+	}
 	cfg.fileserverHits.Store(0)
+	err := cfg.db.DeleteUsers(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't delete users", err)
+		return 
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Request count was set to 0"))
 }
