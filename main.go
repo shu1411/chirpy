@@ -19,7 +19,7 @@ const root = "/"
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-	dbQueries      *database.Queries
+	db             *database.Queries
 }
 
 func main() {
@@ -42,9 +42,10 @@ func setupServer(dbQueries *database.Queries) *http.Server {
 
 	apiCfg := &apiConfig{
 		fileserverHits: atomic.Int32{},
-		dbQueries: dbQueries,
+		db:             dbQueries,
 	}
 
+	// register handler functions
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
 
@@ -52,7 +53,7 @@ func setupServer(dbQueries *database.Queries) *http.Server {
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetCount)
 	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirp)
-	
+
 	return server
 }
 
@@ -61,10 +62,15 @@ func getDatabaseURL(filename string) string {
 	if err != nil {
 		log.Fatalf("couldn't load .env: %s", err)
 	}
+
 	return os.Getenv("DB_URL")
 }
 
 func setupDBQueries(dbURL string) *database.Queries {
+	if dbURL == "" {
+		log.Fatal("DB_URL must be set")
+	}
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("couldn't open database: %s", err)
