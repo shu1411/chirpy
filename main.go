@@ -1,9 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/joho/godotenv"
+	"github.com/shu1411/chirpy/internal/database"
+
+	// import only for side effects
+	_ "github.com/lib/pq"
 )
 
 const port = "8080"
@@ -11,18 +19,30 @@ const root = "/"
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	dbQueries      *database.Queries
 }
 
 func main() {
+	dbURL := getDatabaseURL(".env")
+	dbQueries := setupDBQueries(dbURL)
+
+	server := setupServer(dbQueries)
+
+	log.Printf("Serving files from %s on port: %s\n", root, port)
+	log.Fatal(server.ListenAndServe())
+}
+
+func setupServer(dbQueries *database.Queries) *http.Server {
 	mux := http.NewServeMux()
 
 	server := &http.Server{
 		Handler: mux,
-		Addr: ":" + port,
+		Addr:    ":" + port,
 	}
 
 	apiCfg := &apiConfig{
 		fileserverHits: atomic.Int32{},
+		dbQueries: dbQueries,
 	}
 
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
@@ -32,7 +52,22 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetCount)
 	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirp)
+	
+	return server
+}
 
-	log.Printf("Serving files from %s on port: %s\n", root, port)
-	log.Fatal(server.ListenAndServe())
+func getDatabaseURL(filename string) string {
+	err := godotenv.Load(filename)
+	if err != nil {
+		log.Fatalf("couldn't load .env: %s", err)
+	}
+	return os.Getenv("DB_URL")
+}
+
+func setupDBQueries(dbURL string) *database.Queries {
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("couldn't open database: %s", err)
+	}
+	return database.New(db)
 }

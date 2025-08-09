@@ -1,5 +1,9 @@
 # binary
 out
+chirpy
 
 # .http
 requests.http
+
+# env
+.env
