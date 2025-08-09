@@ -44,19 +44,23 @@ func setupServer(dbQueries *database.Queries) *http.Server {
 	apiCfg := &apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
-		platform: os.Getenv("PLATFORM"),
+		platform:       os.Getenv("PLATFORM"),
 	}
 
 	// register handler functions
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(root)))
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
 
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetCount)
+
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
-	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirpByID)
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+
+	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetCount)
 
 	return server
 }
