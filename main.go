@@ -56,6 +56,7 @@ func setupServer(dbQueries *database.Queries) *http.Server {
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetCount)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 
 	return server
 }
