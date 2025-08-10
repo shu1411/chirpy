@@ -63,6 +63,8 @@ func setupServer(dbQueries *database.Queries) *http.Server {
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirpByID)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
 
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerUpdatePolkaByID)
+
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
