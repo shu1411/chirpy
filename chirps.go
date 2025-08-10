@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ type Chirp struct {
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
+		Body string `json:"body"`
 	}
 
 	token, err := auth.GetBearerToken(r.Header)
@@ -66,15 +67,35 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerRetrieveChirps(w http.ResponseWriter, r *http.Request) {
 	dbChirps, err := cfg.db.GetChirps(r.Context())
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "couldn't get chirps", err)
-		return
+		respondWithError(w, http.StatusInternalServerError, "couldn't retrieve chirps", err)
+		return 
+	}
+
+	authorID := uuid.Nil
+	authorIDString := r.URL.Query().Get("author_id")
+	if authorIDString != "" {
+		authorID, err = uuid.Parse(authorIDString)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "invalid author id", err)
+			return 
+		}
+	}
+
+	sortOrder := "asc"
+	sortOrderParam := r.URL.Query().Get("sort")
+	if sortOrderParam == "desc" {
+		sortOrder = "desc"
 	}
 
 	chirps := []Chirp{}
 	for _, dbChirp := range dbChirps {
+		if authorID != uuid.Nil && dbChirp.UserID != authorID {
+			continue 
+		}
+
 		chirps = append(chirps, Chirp{
 			ID:        dbChirp.ID,
 			CreatedAt: dbChirp.CreatedAt,
@@ -83,6 +104,13 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 			UserID:    dbChirp.UserID,
 		})
 	}
+
+	sort.Slice(chirps, func(i, j int) bool {
+		if sortOrder == "desc" {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		}
+		return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+	})
 
 	respondWithJSON(w, http.StatusOK, chirps)
 }
@@ -108,42 +136,42 @@ func (cfg *apiConfig) handlerDeleteChirpByID(w http.ResponseWriter, r *http.Requ
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "couldn't find token", err)
-		return 
+		return
 	}
 
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "couldn't validate JWT", err)
-		return 
+		return
 	}
 
 	chirpIDString := r.PathValue("chirpID")
 	if chirpIDString == "" {
 		respondWithError(w, http.StatusBadRequest, "couldn't find chirp ID in header", err)
-		return 
+		return
 	}
 
 	chirpID, err := uuid.Parse(chirpIDString)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "couldn't parse chirpID", err)
-		return 
+		return
 	}
 
 	dbChirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "couldn't get chirp", err)
-		return 
+		return
 	}
 
 	if dbChirp.UserID != userID {
 		respondWithError(w, http.StatusForbidden, "you can't delete this chirp", err)
-		return 
+		return
 	}
 
 	err = cfg.db.DeleteChirpByID(r.Context(), chirpID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "couldn't find chirp", err)
-		return 
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
