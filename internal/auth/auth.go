@@ -2,6 +2,8 @@ package auth
 
 import (
 	"errors"
+	"net/http"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -19,4 +21,18 @@ func HashPassword(password string) (string, error) {
 
 func CheckPasswordHash(password, hash string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+}
+
+func GetAPIKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", ErrNoAuthHeaderIncluded
+	}
+
+	apiKeySplit := strings.Split(authHeader, " ")
+	if len(apiKeySplit) < 2 || apiKeySplit[0] != "ApiKey" {
+		return "", errors.New("malformed authorization header")
+	}
+
+	return apiKeySplit[1], nil
 }

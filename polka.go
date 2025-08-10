@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/shu1411/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) handlerUpdatePolkaByID(w http.ResponseWriter, r *http.Request) {
@@ -17,9 +18,20 @@ func (cfg *apiConfig) handlerUpdatePolkaByID(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
+	headerAPIKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "couldn't get api key", err)
+		return
+	}
+
+	if headerAPIKey != cfg.polkaKey {
+		respondWithError(w, http.StatusUnauthorized, "invalid api key", err)
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't decode parameters", err)
 		return
