@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -68,4 +70,15 @@ func GetBearerToken(headers http.Header) (string, error) {
 	}
 
 	return splitAuth[1], nil
+}
+
+// Generate random 32-byte hex-encoded string
+func MakeRefreshToken() string {
+	dat := make([]byte, 32)
+
+	// no reason to check for errors because rand.Read never returns an error
+	// and will always fill the slice entirely
+	rand.Read(dat)
+
+	return hex.EncodeToString(dat)
 }
