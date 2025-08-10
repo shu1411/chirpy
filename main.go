@@ -21,6 +21,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 func main() {
@@ -45,6 +46,7 @@ func setupServer(dbQueries *database.Queries) *http.Server {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		platform:       os.Getenv("PLATFORM"),
+		jwtSecret:      os.Getenv("SECRET"),
 	}
 
 	// register handler functions

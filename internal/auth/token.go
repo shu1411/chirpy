@@ -16,10 +16,10 @@ const TokenType = "chirpy"
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	signingKey := []byte(tokenSecret)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer: "chirpy",
-		IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
+		Issuer:    "chirpy",
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
-		Subject: userID.String(),
+		Subject:   userID.String(),
 	})
 
 	return token.SignedString(signingKey)
@@ -59,8 +59,13 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 func GetBearerToken(headers http.Header) (string, error) {
 	authKey := headers.Get("Authorization")
 	if authKey == "" {
-		return "", errors.New("couldn't retrieve authorization header")
+		return "", ErrNoAuthHeaderIncluded
 	}
 
-	return strings.TrimPrefix(authKey, "Bearer "), nil
+	splitAuth := strings.Split(authKey, " ")
+	if len(splitAuth) < 2 || splitAuth[0] != "Bearer" {
+		return "", errors.New("malformed authorization header")
+	}
+
+	return splitAuth[1], nil
 }
